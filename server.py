@@ -108,14 +108,16 @@ def query_vob(member_id="", dob="", payer="", facility="", employer="", first_na
 
 
 # ========== REIMBURSEMENT QUERIES ==========
-def reimb_summary(prefix="", payer="", employer=""):
+def reimb_summary(prefix="", payer="", employer="", first_name="", last_name=""):
     """Query reimbursement summary grouped by member/payer/loc"""
     prefix = (prefix or "").strip()
     payer = (payer or "").strip()
     employer = (employer or "").strip()
+    first_name = (first_name or "").strip()
+    last_name = (last_name or "").strip()
 
-    if not prefix and not payer and not employer:
-        raise ValueError("Provide at least one filter (prefix/memberId, payer, employer).")
+    if not prefix and not payer and not employer and not first_name and not last_name:
+        raise ValueError("Provide at least one filter (prefix/memberId, payer, employer, firstName, lastName).")
 
     conn = sqlite3.connect(DB_PATH, timeout=10)
     conn.row_factory = sqlite3.Row
@@ -136,6 +138,14 @@ def reimb_summary(prefix="", payer="", employer=""):
         if employer and has_employer:
             where.append("(employer_name LIKE :employerLike COLLATE NOCASE)")
             params["employerLike"] = f"%{employer}%"
+
+        if first_name:
+            where.append("(first_name LIKE :firstNameLike COLLATE NOCASE)")
+            params["firstNameLike"] = f"%{first_name}%"
+
+        if last_name:
+            where.append("(last_name LIKE :lastNameLike COLLATE NOCASE)")
+            params["lastNameLike"] = f"%{last_name}%"
 
         sql = f"""
           SELECT
@@ -246,8 +256,10 @@ class Handler(SimpleHTTPRequestHandler):
             prefix = (qs.get("prefix", [""])[0] or "").strip()
             payer = (qs.get("payer", [""])[0] or "").strip()
             employer = (qs.get("employer", [""])[0] or "").strip()
+            first_name = (qs.get("firstName", [""])[0] or "").strip()
+            last_name = (qs.get("lastName", [""])[0] or "").strip()
             try:
-                rows = reimb_summary(prefix=prefix, payer=payer, employer=employer)
+                rows = reimb_summary(prefix=prefix, payer=payer, employer=employer, first_name=first_name, last_name=last_name)
                 return self._send_json(200, {"count": len(rows), "rows": rows})
             except Exception as e:
                 return self._send_json(500, {"error": str(e)})

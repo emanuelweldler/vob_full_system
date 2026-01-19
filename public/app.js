@@ -378,11 +378,15 @@ async function loadReimbAverages() {
   $("reimbEmptyState").style.display = "none";
   $("reimbCountText").textContent = "0 matches";
 
+  const firstName = $("reimbFirstName").value.trim();
+  const lastName = $("reimbLastName").value.trim();
   const prefix = $("reimbPrefix").value.trim();
   const payer = $("reimbPayer").value.trim();
   const employer = $("reimbEmployer").value.trim();
 
   const qs = new URLSearchParams();
+  if (firstName) qs.set("firstName", firstName);
+  if (lastName) qs.set("lastName", lastName);
   if (prefix) qs.set("prefix", prefix);
   if (payer) qs.set("payer", payer);
   if (employer) qs.set("employer", employer);
@@ -415,6 +419,8 @@ async function loadReimbAverages() {
 }
 
 function clearReimb() {
+  $("reimbFirstName").value = "";
+  $("reimbLastName").value = "";
   $("reimbPrefix").value = "";
   $("reimbPayer").value = "";
   $("reimbEmployer").value = "";
