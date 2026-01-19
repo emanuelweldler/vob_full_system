@@ -41,10 +41,12 @@ def query_vob(member_id="", dob="", payer="", bcbs_state="", facility="", employ
     if payer:
         # Check if this is a BCBS search with state
         if bcbs_state and ("bcbs" in payer.lower() or "blue" in payer.lower()):
-            # Smart BCBS + state search
+            # Smart BCBS + state search (includes Anthem BCBS and Blue Cross)
             where.append("""
                 (
-                  insurance_name_raw LIKE :bcbsLike COLLATE NOCASE
+                  (insurance_name_raw LIKE :bcbsLike COLLATE NOCASE
+                   OR insurance_name_raw LIKE :blueCrossLike COLLATE NOCASE
+                   OR insurance_name_raw LIKE :anthemLike COLLATE NOCASE)
                   AND (
                     insurance_name_raw LIKE :stateLike COLLATE NOCASE
                     OR insurance_name_raw LIKE :stateFullLike COLLATE NOCASE
@@ -52,6 +54,8 @@ def query_vob(member_id="", dob="", payer="", bcbs_state="", facility="", employ
                 )
             """)
             params["bcbsLike"] = "%bcbs%"
+            params["blueCrossLike"] = "%blue%cross%"
+            params["anthemLike"] = "%anthem%"
             params["stateLike"] = f"%{bcbs_state}%"
             # Also search for "OF [State]" pattern
             params["stateFullLike"] = f"%OF {bcbs_state}%"
@@ -60,10 +64,12 @@ def query_vob(member_id="", dob="", payer="", bcbs_state="", facility="", employ
             where.append("(insurance_name_raw LIKE :payerLike COLLATE NOCASE)")
             params["payerLike"] = f"%{payer}%"
     elif bcbs_state:
-        # BCBS state specified without payer text - auto-search BCBS
+        # BCBS state specified without payer text - auto-search BCBS (includes Anthem and Blue Cross)
         where.append("""
             (
-              insurance_name_raw LIKE :bcbsLike COLLATE NOCASE
+              (insurance_name_raw LIKE :bcbsLike COLLATE NOCASE
+               OR insurance_name_raw LIKE :blueCrossLike COLLATE NOCASE
+               OR insurance_name_raw LIKE :anthemLike COLLATE NOCASE)
               AND (
                 insurance_name_raw LIKE :stateLike COLLATE NOCASE
                 OR insurance_name_raw LIKE :stateFullLike COLLATE NOCASE
@@ -71,6 +77,8 @@ def query_vob(member_id="", dob="", payer="", bcbs_state="", facility="", employ
             )
         """)
         params["bcbsLike"] = "%bcbs%"
+        params["blueCrossLike"] = "%blue%cross%"
+        params["anthemLike"] = "%anthem%"
         params["stateLike"] = f"%{bcbs_state}%"
         params["stateFullLike"] = f"%OF {bcbs_state}%"
 
@@ -92,7 +100,7 @@ def query_vob(member_id="", dob="", payer="", bcbs_state="", facility="", employ
 
     if not where:
         raise ValueError(
-            "Provide at least one filter (memberId, dob, payer, facility, employer, firstName, lastName)."
+            "Provide at least one filter (memberId, dob, payer, bcbsState, facility, employer, firstName, lastName)."
         )
 
     sql = f"""
@@ -143,8 +151,8 @@ def reimb_summary(prefix="", payer="", bcbs_state="", employer="", first_name=""
     first_name = (first_name or "").strip()
     last_name = (last_name or "").strip()
 
-    if not prefix and not payer and not employer and not first_name and not last_name:
-        raise ValueError("Provide at least one filter (prefix/memberId, payer, employer, firstName, lastName).")
+    if not prefix and not payer and not bcbs_state and not employer and not first_name and not last_name:
+        raise ValueError("Provide at least one filter (prefix/memberId, payer, bcbsState, employer, firstName, lastName).")
 
     conn = sqlite3.connect(DB_PATH, timeout=10)
     conn.row_factory = sqlite3.Row
@@ -161,10 +169,12 @@ def reimb_summary(prefix="", payer="", bcbs_state="", employer="", first_name=""
         if payer:
             # Check if this is a BCBS search with state
             if bcbs_state and ("bcbs" in payer.lower() or "blue" in payer.lower()):
-                # Smart BCBS + state search
+                # Smart BCBS + state search (includes Anthem BCBS and Blue Cross)
                 where.append("""
                     (
-                      payer_name LIKE :bcbsLike COLLATE NOCASE
+                      (payer_name LIKE :bcbsLike COLLATE NOCASE
+                       OR payer_name LIKE :blueCrossLike COLLATE NOCASE
+                       OR payer_name LIKE :anthemLike COLLATE NOCASE)
                       AND (
                         payer_name LIKE :stateLike COLLATE NOCASE
                         OR payer_name LIKE :stateFullLike COLLATE NOCASE
@@ -172,6 +182,8 @@ def reimb_summary(prefix="", payer="", bcbs_state="", employer="", first_name=""
                     )
                 """)
                 params["bcbsLike"] = "%bcbs%"
+                params["blueCrossLike"] = "%blue%cross%"
+                params["anthemLike"] = "%anthem%"
                 params["stateLike"] = f"%{bcbs_state}%"
                 params["stateFullLike"] = f"%OF {bcbs_state}%"
             else:
@@ -179,10 +191,12 @@ def reimb_summary(prefix="", payer="", bcbs_state="", employer="", first_name=""
                 where.append("(payer_name LIKE :payerLike COLLATE NOCASE)")
                 params["payerLike"] = f"%{payer}%"
         elif bcbs_state:
-            # BCBS state specified without payer text - auto-search BCBS
+            # BCBS state specified without payer text - auto-search BCBS (includes Anthem and Blue Cross)
             where.append("""
                 (
-                  payer_name LIKE :bcbsLike COLLATE NOCASE
+                  (payer_name LIKE :bcbsLike COLLATE NOCASE
+                   OR payer_name LIKE :blueCrossLike COLLATE NOCASE
+                   OR payer_name LIKE :anthemLike COLLATE NOCASE)
                   AND (
                     payer_name LIKE :stateLike COLLATE NOCASE
                     OR payer_name LIKE :stateFullLike COLLATE NOCASE
@@ -190,6 +204,8 @@ def reimb_summary(prefix="", payer="", bcbs_state="", employer="", first_name=""
                 )
             """)
             params["bcbsLike"] = "%bcbs%"
+            params["blueCrossLike"] = "%blue%cross%"
+            params["anthemLike"] = "%anthem%"
             params["stateLike"] = f"%{bcbs_state}%"
             params["stateFullLike"] = f"%OF {bcbs_state}%"
 

@@ -32,7 +32,7 @@ function toggleBcbsState() {
   const bcbsField = $("vobBcbsStateField");
   const payerValue = payerInput.value.toLowerCase();
   
-  if (payerValue.includes("bcbs") || payerValue.includes("blue")) {
+  if (payerValue.includes("bcbs") || payerValue.includes("blue") || payerValue.includes("anthem")) {
     bcbsField.style.display = "";
   } else {
     bcbsField.style.display = "none";
@@ -45,7 +45,7 @@ function toggleReimbBcbsState() {
   const bcbsField = $("reimbBcbsStateField");
   const payerValue = payerInput.value.toLowerCase();
   
-  if (payerValue.includes("bcbs") || payerValue.includes("blue")) {
+  if (payerValue.includes("bcbs") || payerValue.includes("blue") || payerValue.includes("anthem")) {
     bcbsField.style.display = "";
   } else {
     bcbsField.style.display = "none";
@@ -154,7 +154,7 @@ async function searchVOB() {
   if (lastName) params.set("lastName", lastName);
   params.set("limit", limit);
 
-  if (!memberId && !dob && !payer && !facility && !employer && !firstName && !lastName) {
+  if (!memberId && !dob && !payer && !bcbsState && !facility && !employer && !firstName && !lastName) {
     alert("Enter at least one filter.");
     return;
   }
