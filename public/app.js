@@ -15,7 +15,7 @@ function esc(v) {
 }
 
 function money(v) {
-  if (v === null || v === undefined || v === "") return "—";
+  if (v === null || v === undefined || v === "") return "â€”";
   const n = Number(v);
   if (Number.isNaN(n)) return String(v);
   return n.toLocaleString(undefined, {
@@ -24,6 +24,35 @@ function money(v) {
     maximumFractionDigits: 2
   });
 }
+
+
+// ========== BCBS STATE FIELD TOGGLE ==========
+function toggleBcbsState() {
+  const payerInput = $("vobPayer");
+  const bcbsField = $("vobBcbsStateField");
+  const payerValue = payerInput.value.toLowerCase();
+  
+  if (payerValue.includes("bcbs") || payerValue.includes("blue")) {
+    bcbsField.style.display = "";
+  } else {
+    bcbsField.style.display = "none";
+    $("vobBcbsState").value = ""; // Clear state when hidden
+  }
+}
+
+function toggleReimbBcbsState() {
+  const payerInput = $("reimbPayer");
+  const bcbsField = $("reimbBcbsStateField");
+  const payerValue = payerInput.value.toLowerCase();
+  
+  if (payerValue.includes("bcbs") || payerValue.includes("blue")) {
+    bcbsField.style.display = "";
+  } else {
+    bcbsField.style.display = "none";
+    $("reimbBcbsState").value = ""; // Clear state when hidden
+  }
+}
+
 
 function setHealth(ok, text) {
   const pill = $("healthPill");
@@ -94,7 +123,7 @@ function renderVOB(rows) {
       $("vobModalTitle").textContent =
         `${fmt(r.first_name)} ${fmt(r.last_name)}`.trim() || "Client Details";
       $("vobModalSubTitle").textContent =
-        `${fmt(r.payer_canonical || r.insurance_name_raw)} • ${fmt(r.facility_name)}`.trim();
+        `${fmt(r.payer_canonical || r.insurance_name_raw)} â€¢ ${fmt(r.facility_name)}`.trim();
       $("vobModalBody").innerHTML = `<pre>${fmt(JSON.stringify(r, null, 2))}</pre>`;
       $("vobModalOverlay").style.display = "flex";
     });
@@ -107,6 +136,7 @@ async function searchVOB() {
   const memberId = $("vobMemberId").value.trim();
   const dob = $("vobDob").value.trim();
   const payer = $("vobPayer").value.trim();
+  const bcbsState = $("vobBcbsState").value.trim();
   const facility = $("vobFacility").value.trim();
   const employer = $("vobEmployer").value.trim();
   const firstName = $("vobFirstName").value.trim();
@@ -117,6 +147,7 @@ async function searchVOB() {
   if (memberId) params.set("memberId", memberId);
   if (dob) params.set("dob", dob);
   if (payer) params.set("payer", payer);
+  if (bcbsState) params.set("bcbsState", bcbsState);
   if (facility) params.set("facility", facility);
   if (employer) params.set("employer", employer);
   if (firstName) params.set("firstName", firstName);
@@ -148,6 +179,8 @@ function clearVOB() {
   $("vobMemberId").value = "";
   $("vobDob").value = "";
   $("vobPayer").value = "";
+  $("vobBcbsState").value = "";
+  $("vobBcbsStateField").style.display = "none";
   $("vobFacility").value = "";
   $("vobEmployer").value = "";
   $("vobFirstName").value = "";
@@ -213,7 +246,7 @@ function buildSummaryText(person) {
   lines.push("");
   for (const loc of locs) {
     const x = person.locs[loc];
-    if (!x) lines.push(`${loc}: —`);
+    if (!x) lines.push(`${loc}: â€”`);
     else lines.push(`${loc}: avg ${money(x.avg)} (${x.n} rows)`);
   }
   return lines.join("\n");
@@ -221,7 +254,7 @@ function buildSummaryText(person) {
 
 function locLine(person, loc) {
   const x = person.locs[loc];
-  if (!x) return `<span><b>${loc}</b>: —</span>`;
+  if (!x) return `<span><b>${loc}</b>: â€”</span>`;
   return `<span><b>${loc}</b>: avg ${esc(money(x.avg))} (${esc(x.n)} rows)</span>`;
 }
 
@@ -249,7 +282,7 @@ function showReimbClientView(person) {
 
   const name = `${person.last_name}, ${person.first_name}`.replace(/^,\s*/, "").trim() || "(No name)";
   $("reimbModalTitle").textContent = "Client";
-  $("reimbModalSubTitle").textContent = `${name} • ${person.member_id} • ${person.payer_name || ""}`.trim();
+  $("reimbModalSubTitle").textContent = `${name} â€¢ ${person.member_id} â€¢ ${person.payer_name || ""}`.trim();
 
   const summaryText = buildSummaryText(person);
 
@@ -286,7 +319,7 @@ async function showReimbLocView(person, loc) {
 
   $("reimbModalTitle").textContent = `Daily rows: ${loc}`;
   $("reimbModalSubTitle").textContent = person.member_id;
-  $("reimbLocView").innerHTML = `<div class="msg">Loading…</div>`;
+  $("reimbLocView").innerHTML = `<div class="msg">Loadingâ€¦</div>`;
   showReimbModal();
 
   try {
@@ -333,7 +366,7 @@ function renderReimbPeople(people) {
     const name = `${p.last_name}, ${p.first_name}`.replace(/^,\s*/, "").trim() || "(No name)";
 
     el.innerHTML = `
-      <div class="name" style="cursor:pointer;">${esc(name)} • ${esc(p.member_id)}</div>
+      <div class="name" style="cursor:pointer;">${esc(name)} â€¢ ${esc(p.member_id)}</div>
       <div class="msg">${esc(p.payer_name)}</div>
       <div class="row" style="margin-top:10px;">
         <button class="secondary" data-copy="1" type="button">Copy summary</button>
@@ -382,6 +415,7 @@ async function loadReimbAverages() {
   const lastName = $("reimbLastName").value.trim();
   const prefix = $("reimbPrefix").value.trim();
   const payer = $("reimbPayer").value.trim();
+  const bcbsState = $("reimbBcbsState").value.trim();
   const employer = $("reimbEmployer").value.trim();
 
   const qs = new URLSearchParams();
@@ -389,6 +423,7 @@ async function loadReimbAverages() {
   if (lastName) qs.set("lastName", lastName);
   if (prefix) qs.set("prefix", prefix);
   if (payer) qs.set("payer", payer);
+  if (bcbsState) qs.set("bcbsState", bcbsState);
   if (employer) qs.set("employer", employer);
 
   if (!qs.toString()) {
@@ -423,6 +458,8 @@ function clearReimb() {
   $("reimbLastName").value = "";
   $("reimbPrefix").value = "";
   $("reimbPayer").value = "";
+  $("reimbBcbsState").value = "";
+  $("reimbBcbsStateField").style.display = "none";
   $("reimbEmployer").value = "";
   $("reimbMsg").textContent = "";
   $("reimbCountText").textContent = "0 matches";
@@ -435,6 +472,7 @@ window.addEventListener("DOMContentLoaded", () => {
   // VOB events
   $("vobSearchBtn").addEventListener("click", searchVOB);
   $("vobClearBtn").addEventListener("click", clearVOB);
+  $("vobPayer").addEventListener("input", toggleBcbsState);
   $("vobModalCloseBtn").addEventListener("click", closeVOBModal);
   $("vobModalOverlay").addEventListener("click", (e) => {
     if (e.target === $("vobModalOverlay")) closeVOBModal();
@@ -443,6 +481,7 @@ window.addEventListener("DOMContentLoaded", () => {
   // Reimbursement events
   $("reimbGoBtn").addEventListener("click", loadReimbAverages);
   $("reimbClearBtn").addEventListener("click", clearReimb);
+  $("reimbPayer").addEventListener("input", toggleReimbBcbsState);
   $("reimbModalBackBtn").addEventListener("click", () => {
     if (reimbActivePerson) showReimbClientView(reimbActivePerson);
   });

@@ -37,7 +37,63 @@
           </div>
           <div class="field">
             <label>Payer (canonical or raw)</label>
-            <input id="vobPayer" placeholder="e.g., UHC, Anthem" />
+            <input id="vobPayer" placeholder="e.g., UHC, Anthem, BCBS" />
+          </div>
+          <div class="field" id="vobBcbsStateField" style="display:none;">
+            <label>BCBS State (optional)</label>
+            <select id="vobBcbsState">
+              <option value="">-- Select State --</option>
+              <option value="Alabama">Alabama (AL)</option>
+              <option value="Alaska">Alaska (AK)</option>
+              <option value="Arizona">Arizona (AZ)</option>
+              <option value="Arkansas">Arkansas (AR)</option>
+              <option value="California">California (CA)</option>
+              <option value="Colorado">Colorado (CO)</option>
+              <option value="Connecticut">Connecticut (CT)</option>
+              <option value="Delaware">Delaware (DE)</option>
+              <option value="Florida">Florida (FL)</option>
+              <option value="Georgia">Georgia (GA)</option>
+              <option value="Hawaii">Hawaii (HI)</option>
+              <option value="Idaho">Idaho (ID)</option>
+              <option value="Illinois">Illinois (IL)</option>
+              <option value="Indiana">Indiana (IN)</option>
+              <option value="Iowa">Iowa (IA)</option>
+              <option value="Kansas">Kansas (KS)</option>
+              <option value="Kentucky">Kentucky (KY)</option>
+              <option value="Louisiana">Louisiana (LA)</option>
+              <option value="Maine">Maine (ME)</option>
+              <option value="Maryland">Maryland (MD)</option>
+              <option value="Massachusetts">Massachusetts (MA)</option>
+              <option value="Michigan">Michigan (MI)</option>
+              <option value="Minnesota">Minnesota (MN)</option>
+              <option value="Mississippi">Mississippi (MS)</option>
+              <option value="Missouri">Missouri (MO)</option>
+              <option value="Montana">Montana (MT)</option>
+              <option value="Nebraska">Nebraska (NE)</option>
+              <option value="Nevada">Nevada (NV)</option>
+              <option value="New Hampshire">New Hampshire (NH)</option>
+              <option value="New Jersey">New Jersey (NJ)</option>
+              <option value="New Mexico">New Mexico (NM)</option>
+              <option value="New York">New York (NY)</option>
+              <option value="North Carolina">North Carolina (NC)</option>
+              <option value="North Dakota">North Dakota (ND)</option>
+              <option value="Ohio">Ohio (OH)</option>
+              <option value="Oklahoma">Oklahoma (OK)</option>
+              <option value="Oregon">Oregon (OR)</option>
+              <option value="Pennsylvania">Pennsylvania (PA)</option>
+              <option value="Rhode Island">Rhode Island (RI)</option>
+              <option value="South Carolina">South Carolina (SC)</option>
+              <option value="South Dakota">South Dakota (SD)</option>
+              <option value="Tennessee">Tennessee (TN)</option>
+              <option value="Texas">Texas (TX)</option>
+              <option value="Utah">Utah (UT)</option>
+              <option value="Vermont">Vermont (VT)</option>
+              <option value="Virginia">Virginia (VA)</option>
+              <option value="Washington">Washington (WA)</option>
+              <option value="West Virginia">West Virginia (WV)</option>
+              <option value="Wisconsin">Wisconsin (WI)</option>
+              <option value="Wyoming">Wyoming (WY)</option>
+            </select>
           </div>
           <div class="field">
             <label>Facility</label>
@@ -121,7 +177,63 @@
           </div>
           <div class="field">
             <label>Payer contains (optional)</label>
-            <input id="reimbPayer" placeholder="e.g., BCBS IL" />
+            <input id="reimbPayer" placeholder="e.g., BCBS, UHC" />
+          </div>
+          <div class="field" id="reimbBcbsStateField" style="display:none;">
+            <label>BCBS State (optional)</label>
+            <select id="reimbBcbsState">
+              <option value="">-- Select State --</option>
+              <option value="Alabama">Alabama (AL)</option>
+              <option value="Alaska">Alaska (AK)</option>
+              <option value="Arizona">Arizona (AZ)</option>
+              <option value="Arkansas">Arkansas (AR)</option>
+              <option value="California">California (CA)</option>
+              <option value="Colorado">Colorado (CO)</option>
+              <option value="Connecticut">Connecticut (CT)</option>
+              <option value="Delaware">Delaware (DE)</option>
+              <option value="Florida">Florida (FL)</option>
+              <option value="Georgia">Georgia (GA)</option>
+              <option value="Hawaii">Hawaii (HI)</option>
+              <option value="Idaho">Idaho (ID)</option>
+              <option value="Illinois">Illinois (IL)</option>
+              <option value="Indiana">Indiana (IN)</option>
+              <option value="Iowa">Iowa (IA)</option>
+              <option value="Kansas">Kansas (KS)</option>
+              <option value="Kentucky">Kentucky (KY)</option>
+              <option value="Louisiana">Louisiana (LA)</option>
+              <option value="Maine">Maine (ME)</option>
+              <option value="Maryland">Maryland (MD)</option>
+              <option value="Massachusetts">Massachusetts (MA)</option>
+              <option value="Michigan">Michigan (MI)</option>
+              <option value="Minnesota">Minnesota (MN)</option>
+              <option value="Mississippi">Mississippi (MS)</option>
+              <option value="Missouri">Missouri (MO)</option>
+              <option value="Montana">Montana (MT)</option>
+              <option value="Nebraska">Nebraska (NE)</option>
+              <option value="Nevada">Nevada (NV)</option>
+              <option value="New Hampshire">New Hampshire (NH)</option>
+              <option value="New Jersey">New Jersey (NJ)</option>
+              <option value="New Mexico">New Mexico (NM)</option>
+              <option value="New York">New York (NY)</option>
+              <option value="North Carolina">North Carolina (NC)</option>
+              <option value="North Dakota">North Dakota (ND)</option>
+              <option value="Ohio">Ohio (OH)</option>
+              <option value="Oklahoma">Oklahoma (OK)</option>
+              <option value="Oregon">Oregon (OR)</option>
+              <option value="Pennsylvania">Pennsylvania (PA)</option>
+              <option value="Rhode Island">Rhode Island (RI)</option>
+              <option value="South Carolina">South Carolina (SC)</option>
+              <option value="South Dakota">South Dakota (SD)</option>
+              <option value="Tennessee">Tennessee (TN)</option>
+              <option value="Texas">Texas (TX)</option>
+              <option value="Utah">Utah (UT)</option>
+              <option value="Vermont">Vermont (VT)</option>
+              <option value="Virginia">Virginia (VA)</option>
+              <option value="Washington">Washington (WA)</option>
+              <option value="West Virginia">West Virginia (WV)</option>
+              <option value="Wisconsin">Wisconsin (WI)</option>
+              <option value="Wyoming">Wyoming (WY)</option>
+            </select>
           </div>
           <div class="field">
             <label>First Name (optional)</label>
@@ -182,7 +294,7 @@
       <div class="modalHeader">
         <div style="display:flex; align-items:center; gap:10px;">
           <button id="reimbModalBackBtn" class="modalBackBtn" type="button" style="display:none;">
-            ← Back
+            â† Back
           </button>
           <h3 id="reimbModalTitle" class="modalTitle">Client</h3>
         </div>

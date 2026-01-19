@@ -127,6 +127,13 @@ h2{margin:0 0 12px;font-size:18px}
   border-color: rgba(79,140,255,0.55);
 }
 
+/* Make dropdown options visible */
+select option{
+  background: #1a2744;
+  color: #e8f0ff;
+  padding: 8px;
+}
+
 .row{
   display:flex;
   align-items:center;

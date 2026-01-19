@@ -4,7 +4,7 @@ import sqlite3
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse, parse_qs
 
-# ✅ POINT THIS AT YOUR SQLITE DB FILE:
+# âœ… POINT THIS AT YOUR SQLITE DB FILE:
 DB_PATH = r"C:\data\VOB_DB\vob.db"
 
 # Serve files from the "public" folder (your UI)
@@ -18,7 +18,7 @@ def table_has_column(conn: sqlite3.Connection, table: str, col: str) -> bool:
 
 
 # ========== VOB QUERIES ==========
-def query_vob(member_id="", dob="", payer="", facility="", employer="", first_name="", last_name="", limit=50):
+def query_vob(member_id="", dob="", payer="", bcbs_state="", facility="", employer="", first_name="", last_name="", limit=50):
     """Query VOB records table"""
     limit = max(1, min(int(limit or 50), 200))
 
@@ -39,13 +39,40 @@ def query_vob(member_id="", dob="", payer="", facility="", employer="", first_na
         params["dob"] = dob
 
     if payer:
+        # Check if this is a BCBS search with state
+        if bcbs_state and ("bcbs" in payer.lower() or "blue" in payer.lower()):
+            # Smart BCBS + state search
+            where.append("""
+                (
+                  insurance_name_raw LIKE :bcbsLike COLLATE NOCASE
+                  AND (
+                    insurance_name_raw LIKE :stateLike COLLATE NOCASE
+                    OR insurance_name_raw LIKE :stateFullLike COLLATE NOCASE
+                  )
+                )
+            """)
+            params["bcbsLike"] = "%bcbs%"
+            params["stateLike"] = f"%{bcbs_state}%"
+            # Also search for "OF [State]" pattern
+            params["stateFullLike"] = f"%OF {bcbs_state}%"
+        else:
+            # Regular payer search - only search insurance_name_raw since payer_canonical is NULL
+            where.append("(insurance_name_raw LIKE :payerLike COLLATE NOCASE)")
+            params["payerLike"] = f"%{payer}%"
+    elif bcbs_state:
+        # BCBS state specified without payer text - auto-search BCBS
         where.append("""
             (
-              payer_canonical LIKE :payerLike COLLATE NOCASE
-              OR insurance_name_raw LIKE :payerLike COLLATE NOCASE
+              insurance_name_raw LIKE :bcbsLike COLLATE NOCASE
+              AND (
+                insurance_name_raw LIKE :stateLike COLLATE NOCASE
+                OR insurance_name_raw LIKE :stateFullLike COLLATE NOCASE
+              )
             )
         """)
-        params["payerLike"] = f"%{payer}%"
+        params["bcbsLike"] = "%bcbs%"
+        params["stateLike"] = f"%{bcbs_state}%"
+        params["stateFullLike"] = f"%OF {bcbs_state}%"
 
     if facility:
         where.append("(facility_name LIKE :facilityLike COLLATE NOCASE)")
@@ -108,7 +135,7 @@ def query_vob(member_id="", dob="", payer="", facility="", employer="", first_na
 
 
 # ========== REIMBURSEMENT QUERIES ==========
-def reimb_summary(prefix="", payer="", employer="", first_name="", last_name=""):
+def reimb_summary(prefix="", payer="", bcbs_state="", employer="", first_name="", last_name=""):
     """Query reimbursement summary grouped by member/payer/loc"""
     prefix = (prefix or "").strip()
     payer = (payer or "").strip()
@@ -132,8 +159,39 @@ def reimb_summary(prefix="", payer="", employer="", first_name="", last_name="")
             params["prefixLike"] = f"{prefix}%"
 
         if payer:
-            where.append("(payer_name LIKE :payerLike COLLATE NOCASE)")
-            params["payerLike"] = f"%{payer}%"
+            # Check if this is a BCBS search with state
+            if bcbs_state and ("bcbs" in payer.lower() or "blue" in payer.lower()):
+                # Smart BCBS + state search
+                where.append("""
+                    (
+                      payer_name LIKE :bcbsLike COLLATE NOCASE
+                      AND (
+                        payer_name LIKE :stateLike COLLATE NOCASE
+                        OR payer_name LIKE :stateFullLike COLLATE NOCASE
+                      )
+                    )
+                """)
+                params["bcbsLike"] = "%bcbs%"
+                params["stateLike"] = f"%{bcbs_state}%"
+                params["stateFullLike"] = f"%OF {bcbs_state}%"
+            else:
+                # Regular payer search
+                where.append("(payer_name LIKE :payerLike COLLATE NOCASE)")
+                params["payerLike"] = f"%{payer}%"
+        elif bcbs_state:
+            # BCBS state specified without payer text - auto-search BCBS
+            where.append("""
+                (
+                  payer_name LIKE :bcbsLike COLLATE NOCASE
+                  AND (
+                    payer_name LIKE :stateLike COLLATE NOCASE
+                    OR payer_name LIKE :stateFullLike COLLATE NOCASE
+                  )
+                )
+            """)
+            params["bcbsLike"] = "%bcbs%"
+            params["stateLike"] = f"%{bcbs_state}%"
+            params["stateFullLike"] = f"%OF {bcbs_state}%"
 
         if employer and has_employer:
             where.append("(employer_name LIKE :employerLike COLLATE NOCASE)")
@@ -229,6 +287,7 @@ class Handler(SimpleHTTPRequestHandler):
             member_id = (qs.get("memberId", [""])[0] or "").strip()
             dob = (qs.get("dob", [""])[0] or "").strip()
             payer = (qs.get("payer", [""])[0] or "").strip()
+            bcbs_state = (qs.get("bcbsState", [""])[0] or "").strip()
             facility = (qs.get("facility", [""])[0] or "").strip()
             employer = (qs.get("employer", [""])[0] or "").strip()
             first_name = (qs.get("firstName", [""])[0] or "").strip()
@@ -240,6 +299,7 @@ class Handler(SimpleHTTPRequestHandler):
                     member_id=member_id,
                     dob=dob,
                     payer=payer,
+                    bcbs_state=bcbs_state,
                     facility=facility,
                     employer=employer,
                     first_name=first_name,
@@ -255,11 +315,12 @@ class Handler(SimpleHTTPRequestHandler):
             qs = parse_qs(parsed.query)
             prefix = (qs.get("prefix", [""])[0] or "").strip()
             payer = (qs.get("payer", [""])[0] or "").strip()
+            bcbs_state = (qs.get("bcbsState", [""])[0] or "").strip()
             employer = (qs.get("employer", [""])[0] or "").strip()
             first_name = (qs.get("firstName", [""])[0] or "").strip()
             last_name = (qs.get("lastName", [""])[0] or "").strip()
             try:
-                rows = reimb_summary(prefix=prefix, payer=payer, employer=employer, first_name=first_name, last_name=last_name)
+                rows = reimb_summary(prefix=prefix, payer=payer, bcbs_state=bcbs_state, employer=employer, first_name=first_name, last_name=last_name)
                 return self._send_json(200, {"count": len(rows), "rows": rows})
             except Exception as e:
                 return self._send_json(500, {"error": str(e)})
@@ -286,12 +347,12 @@ class Handler(SimpleHTTPRequestHandler):
 
 if __name__ == "__main__":
     if not os.path.exists(DB_PATH):
-        print(f"⚠️ DB file not found at: {DB_PATH}")
+        print(f"âš ï¸ DB file not found at: {DB_PATH}")
         print("   Fix DB_PATH at the top of server.py")
 
     os.chdir(WEB_ROOT)
 
     PORT = 8000
     httpd = ThreadingHTTPServer(("127.0.0.1", PORT), Handler)
-    print(f"✅ Combined Portal running: http://localhost:{PORT}")
+    print(f"âœ… Combined Portal running: http://localhost:{PORT}")
     httpd.serve_forever()
