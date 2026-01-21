@@ -123,7 +123,7 @@ function renderVOB(rows) {
       $("vobModalTitle").textContent =
         `${fmt(r.first_name)} ${fmt(r.last_name)}`.trim() || "Client Details";
       $("vobModalSubTitle").textContent =
-        `${fmt(r.payer_canonical || r.insurance_name_raw)} â€¢ ${fmt(r.facility_name)}`.trim();
+        `${fmt(r.payer_canonical || r.insurance_name_raw)}  ${fmt(r.facility_name)}`.trim();
       $("vobModalBody").innerHTML = `<pre>${fmt(JSON.stringify(r, null, 2))}</pre>`;
       $("vobModalOverlay").style.display = "flex";
     });
@@ -246,7 +246,7 @@ function buildSummaryText(person) {
   lines.push("");
   for (const loc of locs) {
     const x = person.locs[loc];
-    if (!x) lines.push(`${loc}: â€”`);
+    if (!x) lines.push(`${loc}:`);
     else lines.push(`${loc}: avg ${money(x.avg)} (${x.n} rows)`);
   }
   return lines.join("\n");
@@ -254,7 +254,7 @@ function buildSummaryText(person) {
 
 function locLine(person, loc) {
   const x = person.locs[loc];
-  if (!x) return `<span><b>${loc}</b>: â€”</span>`;
+  if (!x) return `<span><b>${loc}</b>: </span>`;
   return `<span><b>${loc}</b>: avg ${esc(money(x.avg))} (${esc(x.n)} rows)</span>`;
 }
 
@@ -282,7 +282,7 @@ function showReimbClientView(person) {
 
   const name = `${person.last_name}, ${person.first_name}`.replace(/^,\s*/, "").trim() || "(No name)";
   $("reimbModalTitle").textContent = "Client";
-  $("reimbModalSubTitle").textContent = `${name} â€¢ ${person.member_id} â€¢ ${person.payer_name || ""}`.trim();
+  $("reimbModalSubTitle").textContent = `${name} • ${person.member_id} • ${person.payer_name || ""}`.trim();
 
   const summaryText = buildSummaryText(person);
 
@@ -366,7 +366,7 @@ function renderReimbPeople(people) {
     const name = `${p.last_name}, ${p.first_name}`.replace(/^,\s*/, "").trim() || "(No name)";
 
     el.innerHTML = `
-      <div class="name" style="cursor:pointer;">${esc(name)} â€¢ ${esc(p.member_id)}</div>
+      <div class="name" style="cursor:pointer;">${esc(name)} • ${esc(p.member_id)}</div>
       <div class="msg">${esc(p.payer_name)}</div>
       <div class="row" style="margin-top:10px;">
         <button class="secondary" data-copy="1" type="button">Copy summary</button>
