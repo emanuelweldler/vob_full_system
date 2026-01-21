@@ -15,7 +15,7 @@ function esc(v) {
 }
 
 function money(v) {
-  if (v === null || v === undefined || v === "") return "â€”";
+  if (v === null || v === undefined || v === "") return "Ã¢â‚¬â€";
   const n = Number(v);
   if (Number.isNaN(n)) return String(v);
   return n.toLocaleString(undefined, {
@@ -94,7 +94,7 @@ function clearVOBUI() {
   $("vobCountText").textContent = "0 matches";
 }
 
-function renderVOB(rows) {
+async function renderVOB(rows) {
   clearVOBUI();
   $("vobCountText").textContent = `${rows.length} match${rows.length === 1 ? "" : "es"}`;
 
@@ -103,13 +103,40 @@ function renderVOB(rows) {
   $("vobEmptyState").style.display = "none";
   $("vobResultsTable").style.display = "table";
 
+  // Check which member IDs have reimbursement data
+  const memberIds = rows.map(r => r.insurance_id_clean || r.insurance_id).filter(Boolean);
+  let reimbMemberIds = [];
+  
+  if (memberIds.length > 0) {
+    try {
+      const params = new URLSearchParams();
+      memberIds.forEach(id => params.append("memberIds[]", id));
+      const res = await fetch(`/api/reimb/check-members?${params.toString()}`);
+      const data = await res.json();
+      reimbMemberIds = data.memberIds || [];
+    } catch (e) {
+      console.error("Failed to check reimb data:", e);
+    }
+  }
+
   const body = $("vobResultsBody");
   for (const r of rows) {
+    const memberId = r.insurance_id_clean || r.insurance_id;
+    const hasReimb = reimbMemberIds.includes(memberId);
+    
     const tr = document.createElement("tr");
+    if (hasReimb) {
+      tr.dataset.hasReimb = "true";
+      tr.dataset.memberId = memberId;
+    }
+    
+    // Add green dot indicator for rows with reimb data
+    const reimbIndicator = hasReimb ? '<span class="reimb-indicator" title="Has reimbursement data">●</span> ' : '';
+    
     tr.innerHTML = `
       <td>${fmt(r.id)}</td>
       <td>${fmt(r.created_at)}</td>
-      <td>${fmt(r.first_name)} ${fmt(r.last_name)}</td>
+      <td>${reimbIndicator}${fmt(r.first_name)} ${fmt(r.last_name)}</td>
       <td>${fmt(r.dob)}</td>
       <td>${fmt(r.payer_canonical || r.insurance_name_raw)}</td>
       <td>${fmt(r.in_out_network)}</td>
@@ -119,19 +146,11 @@ function renderVOB(rows) {
       <td>${fmt(r.facility_name)}</td>
     `;
 
-    tr.addEventListener("click", () => {
-      $("vobModalTitle").textContent =
-        `${fmt(r.first_name)} ${fmt(r.last_name)}`.trim() || "Client Details";
-      $("vobModalSubTitle").textContent =
-        `${fmt(r.payer_canonical || r.insurance_name_raw)}  ${fmt(r.facility_name)}`.trim();
-      $("vobModalBody").innerHTML = `<pre>${fmt(JSON.stringify(r, null, 2))}</pre>`;
-      $("vobModalOverlay").style.display = "flex";
-    });
+    tr.addEventListener("click", () => showVOBModal(r, hasReimb, memberId));
 
     body.appendChild(tr);
   }
 }
-
 async function searchVOB() {
   const memberId = $("vobMemberId").value.trim();
   const dob = $("vobDob").value.trim();
@@ -186,6 +205,83 @@ function clearVOB() {
   $("vobFirstName").value = "";
   $("vobLastName").value = "";
   clearVOBUI();
+}
+
+async function showVOBModal(vobRecord, hasReimb, memberId) {
+  const name = `${fmt(vobRecord.first_name)} ${fmt(vobRecord.last_name)}`.trim() || "Client Details";
+  $("vobModalTitle").textContent = name;
+  $("vobModalSubTitle").textContent =
+    `${fmt(vobRecord.payer_canonical || vobRecord.insurance_name_raw)}  ${fmt(vobRecord.facility_name)}`.trim();
+  
+  if (!hasReimb) {
+    // No reimbursement data - show VOB only (full width)
+    $("vobModalBody").innerHTML = `<pre>${fmt(JSON.stringify(vobRecord, null, 2))}</pre>`;
+    $("vobModalBody").classList.remove("split-view");
+  } else {
+    // Has reimbursement data - show split view
+    $("vobModalBody").classList.add("split-view");
+    $("vobModalBody").innerHTML = '<div class="split-left">Loading VOB...</div><div class="split-right">Loading reimbursement...</div>';
+    
+    // Show modal immediately
+    $("vobModalOverlay").style.display = "flex";
+    
+    // Fetch reimbursement summary
+    try {
+      const qs = new URLSearchParams({ prefix: memberId });
+      const res = await fetch(`/api/reimb/summary?${qs.toString()}`);
+      const data = await res.json();
+      
+      if (!res.ok) throw new Error(data.error || "Failed to load reimbursement data");
+      
+      const people = groupPeople(data.rows || []);
+      const person = people.length > 0 ? people[0] : null;
+      
+      // Build VOB side (left)
+      const vobHtml = `<pre>${fmt(JSON.stringify(vobRecord, null, 2))}</pre>`;
+      
+      // Build Reimbursement side (right)
+      let reimbHtml = '';
+      if (person) {
+        const locs = ["DTX", "RTC", "PHP", "IOP"];
+        reimbHtml = '<div style="padding: 10px;">';
+        reimbHtml += '<h4 style="margin:0 0 12px; color: var(--accent2);">Reimbursement Summary</h4>';
+        reimbHtml += '<div style="margin-bottom: 10px; font-size: 13px;">';
+        reimbHtml += `<div><strong>Name:</strong> ${esc(person.last_name)}, ${esc(person.first_name)}</div>`;
+        reimbHtml += `<div><strong>Member ID:</strong> ${esc(person.member_id)}</div>`;
+        if (person.payer_name) reimbHtml += `<div><strong>Payer:</strong> ${esc(person.payer_name)}</div>`;
+        reimbHtml += '</div>';
+        reimbHtml += '<div style="margin-top: 14px;">';
+        for (const loc of locs) {
+          const x = person.locs[loc];
+          if (!x) {
+            reimbHtml += `<div style="margin: 6px 0;"><strong>${loc}:</strong> —</div>`;
+          } else {
+            reimbHtml += `<div style="margin: 6px 0;"><strong>${loc}:</strong> avg ${esc(money(x.avg))} <span style="color: var(--muted);">(${esc(x.n)} rows)</span></div>`;
+          }
+        }
+        reimbHtml += '</div>';
+        reimbHtml += '</div>';
+      } else {
+        reimbHtml = '<div style="padding: 10px; color: var(--muted);">No reimbursement data found</div>';
+      }
+      
+      // Update modal with both sides
+      $("vobModalBody").innerHTML = `
+        <div class="split-left">${vobHtml}</div>
+        <div class="split-right">${reimbHtml}</div>
+      `;
+      
+    } catch (e) {
+      console.error("Error loading reimbursement data:", e);
+      $("vobModalBody").innerHTML = `
+        <div class="split-left"><pre>${fmt(JSON.stringify(vobRecord, null, 2))}</pre></div>
+        <div class="split-right"><div style="padding: 10px; color: var(--muted);">Error loading reimbursement data: ${esc(e.message)}</div></div>
+      `;
+    }
+    return; // Exit early since we already showed modal
+  }
+  
+  $("vobModalOverlay").style.display = "flex";
 }
 
 function closeVOBModal() {
@@ -282,7 +378,7 @@ function showReimbClientView(person) {
 
   const name = `${person.last_name}, ${person.first_name}`.replace(/^,\s*/, "").trim() || "(No name)";
   $("reimbModalTitle").textContent = "Client";
-  $("reimbModalSubTitle").textContent = `${name} • ${person.member_id} • ${person.payer_name || ""}`.trim();
+  $("reimbModalSubTitle").textContent = `${name} â€¢ ${person.member_id} â€¢ ${person.payer_name || ""}`.trim();
 
   const summaryText = buildSummaryText(person);
 
@@ -319,7 +415,7 @@ async function showReimbLocView(person, loc) {
 
   $("reimbModalTitle").textContent = `Daily rows: ${loc}`;
   $("reimbModalSubTitle").textContent = person.member_id;
-  $("reimbLocView").innerHTML = `<div class="msg">Loadingâ€¦</div>`;
+  $("reimbLocView").innerHTML = `<div class="msg">LoadingÃ¢â‚¬Â¦</div>`;
   showReimbModal();
 
   try {
@@ -366,7 +462,7 @@ function renderReimbPeople(people) {
     const name = `${p.last_name}, ${p.first_name}`.replace(/^,\s*/, "").trim() || "(No name)";
 
     el.innerHTML = `
-      <div class="name" style="cursor:pointer;">${esc(name)} • ${esc(p.member_id)}</div>
+      <div class="name" style="cursor:pointer;">${esc(name)} â€¢ ${esc(p.member_id)}</div>
       <div class="msg">${esc(p.payer_name)}</div>
       <div class="row" style="margin-top:10px;">
         <button class="secondary" data-copy="1" type="button">Copy summary</button>

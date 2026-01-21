@@ -325,3 +325,48 @@ code{
   font-size:12px;
   text-align:center;
 }
+/* ========== REIMBURSEMENT INDICATOR ========== */
+.reimb-indicator{
+  color: rgba(23,195,178,0.95);
+  font-size: 14px;
+  margin-right: 4px;
+  display: inline-block;
+}
+
+/* ========== SPLIT VIEW MODAL ========== */
+.split-view{
+  display: flex;
+  gap: 16px;
+  min-height: 400px;
+}
+
+.split-left{
+  flex: 1;
+  overflow: auto;
+  padding-right: 8px;
+  border-right: 1px solid var(--border);
+}
+
+.split-right{
+  flex: 1;
+  overflow: auto;
+  padding-left: 8px;
+}
+
+@media (max-width: 768px){
+  .split-view{
+    flex-direction: column;
+  }
+  
+  .split-left{
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    padding-right: 0;
+    padding-bottom: 12px;
+  }
+  
+  .split-right{
+    padding-left: 0;
+    padding-top: 12px;
+  }
+}

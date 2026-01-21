@@ -4,7 +4,7 @@ import sqlite3
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse, parse_qs
 
-# âœ… POINT THIS AT YOUR SQLITE DB FILE:
+# Ã¢Å“â€¦ POINT THIS AT YOUR SQLITE DB FILE:
 DB_PATH = r"C:\data\VOB_DB\vob.db"
 
 # Serve files from the "public" folder (your UI)
@@ -274,6 +274,30 @@ def reimb_rows(member_id="", loc="", limit=500):
         conn.close()
 
 
+
+def check_member_reimb(member_ids):
+    """Check which member IDs have reimbursement data"""
+    if not member_ids:
+        return []
+    
+    conn = sqlite3.connect(DB_PATH, timeout=10)
+    conn.row_factory = sqlite3.Row
+    try:
+        # Create placeholders for SQL IN clause
+        placeholders = ','.join('?' * len(member_ids))
+        sql = f"""
+            SELECT DISTINCT member_id
+            FROM reimbursement_rates
+            WHERE member_id IN ({placeholders})
+            AND loc IN ('DTX','RTC','PHP','IOP')
+            AND allowed_amount > 0
+        """
+        rows = conn.execute(sql, member_ids).fetchall()
+        return [r['member_id'] for r in rows]
+    finally:
+        conn.close()
+
+
 # ========== HTTP HANDLER ==========
 class Handler(SimpleHTTPRequestHandler):
     def translate_path(self, path):
@@ -353,6 +377,16 @@ class Handler(SimpleHTTPRequestHandler):
             except Exception as e:
                 return self._send_json(500, {"error": str(e)})
 
+        # Check which member IDs have reimbursement data
+        if parsed.path == "/api/reimb/check-members":
+            qs = parse_qs(parsed.query)
+            member_ids = qs.get("memberIds[]", [])
+            try:
+                has_data = check_member_reimb(member_ids)
+                return self._send_json(200, {"memberIds": has_data})
+            except Exception as e:
+                return self._send_json(500, {"error": str(e)})
+
         # Serve index.html by default
         if parsed.path == "/" or parsed.path == "":
             self.path = "/index.html"
@@ -363,12 +397,12 @@ class Handler(SimpleHTTPRequestHandler):
 
 if __name__ == "__main__":
     if not os.path.exists(DB_PATH):
-        print(f"âš ï¸ DB file not found at: {DB_PATH}")
+        print(f"Ã¢Å¡ Ã¯Â¸Â DB file not found at: {DB_PATH}")
         print("   Fix DB_PATH at the top of server.py")
 
     os.chdir(WEB_ROOT)
 
     PORT = 8000
     httpd = ThreadingHTTPServer(("127.0.0.1", PORT), Handler)
-    print(f"âœ… Combined Portal running: http://localhost:{PORT}")
+    print(f"Ã¢Å“â€¦ Combined Portal running: http://localhost:{PORT}")
     httpd.serve_forever()
