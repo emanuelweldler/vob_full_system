@@ -378,7 +378,7 @@ function showReimbClientView(person) {
 
   const name = `${person.last_name}, ${person.first_name}`.replace(/^,\s*/, "").trim() || "(No name)";
   $("reimbModalTitle").textContent = "Client";
-  $("reimbModalSubTitle").textContent = `${name} â€¢ ${person.member_id} â€¢ ${person.payer_name || ""}`.trim();
+  $("reimbModalSubTitle").textContent = `${name} : ${person.member_id} : ${person.payer_name || ""}`.trim();
 
   const summaryText = buildSummaryText(person);
 
@@ -462,7 +462,7 @@ function renderReimbPeople(people) {
     const name = `${p.last_name}, ${p.first_name}`.replace(/^,\s*/, "").trim() || "(No name)";
 
     el.innerHTML = `
-      <div class="name" style="cursor:pointer;">${esc(name)} â€¢ ${esc(p.member_id)}</div>
+      <div class="name" style="cursor:pointer;">${esc(name)} : ${esc(p.member_id)}</div>
       <div class="msg">${esc(p.payer_name)}</div>
       <div class="row" style="margin-top:10px;">
         <button class="secondary" data-copy="1" type="button">Copy summary</button>
