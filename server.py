@@ -1,16 +1,90 @@
 import json
 import os
 import sqlite3
+import hashlib
+import secrets
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse, parse_qs
+from http.cookies import SimpleCookie
 
-# Ã¢Å“â€¦ POINT THIS AT YOUR SQLITE DB FILE:
+# POINT THIS AT YOUR SQLITE DB FILE:
 DB_PATH = r"C:\data\VOB_DB\vob.db"
 
 # Serve files from the "public" folder (your UI)
 WEB_ROOT = os.path.join(os.path.dirname(__file__), "public")
 
+# In-memory session storage (username -> session_token)
+# In production, you'd use Redis or database
+SESSIONS = {}
 
+
+# ========== AUTHENTICATION FUNCTIONS ==========
+def hash_password(password):
+    """Hash password using SHA256"""
+    return hashlib.sha256(password.encode()).hexdigest()
+
+
+def generate_session_token():
+    """Generate a secure random session token"""
+    return secrets.token_urlsafe(32)
+
+
+def verify_login(username, password):
+    """Verify username and password against database"""
+    conn = sqlite3.connect(DB_PATH, timeout=10)
+    conn.row_factory = sqlite3.Row
+    try:
+        password_hash = hash_password(password)
+        
+        sql = """
+            SELECT id, username, first_name, last_name, role, department, 
+                   login_count, last_login, is_active
+            FROM users
+            WHERE username = ? AND password_hash = ? AND is_active = 1
+        """
+        
+        user = conn.execute(sql, (username, password_hash)).fetchone()
+        
+        if user:
+            # Update login count and last login time
+            user_id = user['id']
+            conn.execute("""
+                UPDATE users 
+                SET login_count = login_count + 1,
+                    last_login = CURRENT_TIMESTAMP
+                WHERE id = ?
+            """, (user_id,))
+            conn.commit()
+            
+            return dict(user)
+        
+        return None
+    finally:
+        conn.close()
+
+
+def get_user_by_session(session_token):
+    """Get user data from session token"""
+    username = SESSIONS.get(session_token)
+    if not username:
+        return None
+    
+    conn = sqlite3.connect(DB_PATH, timeout=10)
+    conn.row_factory = sqlite3.Row
+    try:
+        sql = """
+            SELECT id, username, first_name, last_name, role, department,
+                   login_count, last_login
+            FROM users
+            WHERE username = ? AND is_active = 1
+        """
+        user = conn.execute(sql, (username,)).fetchone()
+        return dict(user) if user else None
+    finally:
+        conn.close()
+
+
+# ========== DATABASE HELPER FUNCTIONS ==========
 def table_has_column(conn: sqlite3.Connection, table: str, col: str) -> bool:
     """Check if a table has a specific column"""
     rows = conn.execute(f"PRAGMA table_info({table});").fetchall()
@@ -274,7 +348,6 @@ def reimb_rows(member_id="", loc="", limit=500):
         conn.close()
 
 
-
 def check_member_reimb(member_ids):
     """Check which member IDs have reimbursement data"""
     if not member_ids:
@@ -313,6 +386,28 @@ class Handler(SimpleHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(data)
 
+    def _get_session_token(self):
+        """Extract session token from cookies"""
+        cookie_header = self.headers.get('Cookie')
+        if not cookie_header:
+            return None
+        
+        cookies = SimpleCookie()
+        cookies.load(cookie_header)
+        
+        if 'session_token' in cookies:
+            return cookies['session_token'].value
+        return None
+
+    def _set_session_cookie(self, session_token):
+        """Set session cookie in response"""
+        # Cookie expires in 24 hours
+        self.send_header('Set-Cookie', f'session_token={session_token}; Path=/; Max-Age=86400; HttpOnly')
+
+    def _clear_session_cookie(self):
+        """Clear session cookie"""
+        self.send_header('Set-Cookie', 'session_token=; Path=/; Max-Age=0; HttpOnly')
+
     def do_GET(self):
         parsed = urlparse(self.path)
 
@@ -320,6 +415,29 @@ class Handler(SimpleHTTPRequestHandler):
         if parsed.path == "/api/health":
             ok = os.path.exists(DB_PATH)
             return self._send_json(200, {"ok": ok, "dbPath": DB_PATH})
+
+        # Check current session
+        if parsed.path == "/api/auth/check":
+            session_token = self._get_session_token()
+            user = get_user_by_session(session_token) if session_token else None
+            
+            if user:
+                return self._send_json(200, {"authenticated": True, "user": user})
+            else:
+                return self._send_json(200, {"authenticated": False})
+
+        # Logout
+        if parsed.path == "/api/auth/logout":
+            session_token = self._get_session_token()
+            if session_token and session_token in SESSIONS:
+                del SESSIONS[session_token]
+            
+            self.send_response(200)
+            self._clear_session_cookie()
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps({"success": True}).encode())
+            return
 
         # VOB search
         if parsed.path == "/api/vob/search":
@@ -387,22 +505,77 @@ class Handler(SimpleHTTPRequestHandler):
             except Exception as e:
                 return self._send_json(500, {"error": str(e)})
 
-        # Serve index.html by default
+        # Protected pages - require authentication
+        if parsed.path == "/portal.html":
+            session_token = self._get_session_token()
+            user = get_user_by_session(session_token) if session_token else None
+            
+            if not user:
+                # Redirect to login
+                self.send_response(302)
+                self.send_header('Location', '/index.html')
+                self.end_headers()
+                return
+            
+            return SimpleHTTPRequestHandler.do_GET(self)
+
+        # Serve index.html (login page) by default
         if parsed.path == "/" or parsed.path == "":
             self.path = "/index.html"
             return SimpleHTTPRequestHandler.do_GET(self)
 
         return SimpleHTTPRequestHandler.do_GET(self)
 
+    def do_POST(self):
+        parsed = urlparse(self.path)
+
+        # Login endpoint
+        if parsed.path == "/api/auth/login":
+            content_length = int(self.headers['Content-Length'])
+            post_data = self.rfile.read(content_length)
+            
+            try:
+                data = json.loads(post_data.decode('utf-8'))
+                username = data.get('username', '').strip()
+                password = data.get('password', '').strip()
+                
+                if not username or not password:
+                    return self._send_json(400, {"error": "Username and password required"})
+                
+                user = verify_login(username, password)
+                
+                if user:
+                    # Create session
+                    session_token = generate_session_token()
+                    SESSIONS[session_token] = username
+                    
+                    # Send response with session cookie
+                    self.send_response(200)
+                    self._set_session_cookie(session_token)
+                    self.send_header("Content-Type", "application/json")
+                    data = json.dumps({"success": True, "user": user}).encode()
+                    self.send_header("Content-Length", str(len(data)))
+                    self.end_headers()
+                    self.wfile.write(data)
+                else:
+                    return self._send_json(401, {"error": "Invalid username or password"})
+                    
+            except Exception as e:
+                return self._send_json(500, {"error": str(e)})
+            return
+
+        return self._send_json(404, {"error": "Not found"})
+
 
 if __name__ == "__main__":
     if not os.path.exists(DB_PATH):
-        print(f"Ã¢Å¡ Ã¯Â¸Â DB file not found at: {DB_PATH}")
+        print(f"⚠️  DB file not found at: {DB_PATH}")
         print("   Fix DB_PATH at the top of server.py")
 
     os.chdir(WEB_ROOT)
 
     PORT = 8000
     httpd = ThreadingHTTPServer(("127.0.0.1", PORT), Handler)
-    print(f"Ã¢Å“â€¦ Combined Portal running: http://localhost:{PORT}")
+    print(f"✓ Healthcare Portal with Auth running: http://localhost:{PORT}")
+    print(f"✓ Login at: http://localhost:{PORT}")
     httpd.serve_forever()

@@ -3,310 +3,198 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Healthcare Portal</title>
-  <link rel="stylesheet" href="styles.css" />
+  <title>WellBrook Healthcare Portal</title>
+  <link rel="stylesheet" href="login_styles.css" />
 </head>
 <body>
-  <div class="app">
-    <header class="header">
-      <div>
-        <h1>Healthcare Portal</h1>
-        <p class="sub">VOB Records & Reimbursement Data</p>
+  <!-- Animated Background Grid -->
+  <div class="bg-grid"></div>
+  
+  <div class="login-container">
+    <!-- Left Side - Branding -->
+    <div class="branding-side">
+      <div class="branding-content">
+        <div class="logo-wrapper">
+          <img src="logo.png" alt="WellBrook Recovery" class="logo" />
+        </div>
+        <h1 class="hero-title">WellBrook Recovery</h1>
+        <p class="hero-subtitle">Healthcare Portal System</p>
+        <div class="feature-list">
+          <div class="feature-item">
+            <span class="feature-icon">✓</span>
+            <span>VOB Verification & Management</span>
+          </div>
+          <div class="feature-item">
+            <span class="feature-icon">✓</span>
+            <span>Reimbursement Analytics</span>
+          </div>
+          <div class="feature-item">
+            <span class="feature-icon">✓</span>
+            <span>HIPAA Compliant & Secure</span>
+          </div>
+        </div>
       </div>
-      <div class="pill" id="healthPill">Checking DB…</div>
-    </header>
-
-    <!-- Tab Navigation -->
-    <nav class="tabs">
-      <button class="tab active" data-tab="vob">VOB Search</button>
-      <button class="tab" data-tab="reimb">Reimbursement</button>
-    </nav>
-
-    <!-- VOB TAB -->
-    <div id="vobTab" class="tab-content active">
-      <section class="card">
-        <h2>VOB Search</h2>
-        <div class="grid">
-          <div class="field">
-            <label>Member ID (partial ok)</label>
-            <input id="vobMemberId" placeholder="e.g., 901007801" />
-          </div>
-          <div class="field">
-            <label>DOB (must match stored format)</label>
-            <input id="vobDob" placeholder="e.g., 07/10/1967" />
-          </div>
-          <div class="field">
-            <label>Payer (canonical or raw)</label>
-            <input id="vobPayer" placeholder="e.g., UHC, Anthem, BCBS" />
-          </div>
-          <div class="field" id="vobBcbsStateField" style="display:none;">
-            <label>BCBS State (optional)</label>
-            <select id="vobBcbsState">
-              <option value="">-- Select State --</option>
-              <option value="Alabama">Alabama (AL)</option>
-              <option value="Alaska">Alaska (AK)</option>
-              <option value="Arizona">Arizona (AZ)</option>
-              <option value="Arkansas">Arkansas (AR)</option>
-              <option value="California">California (CA)</option>
-              <option value="Colorado">Colorado (CO)</option>
-              <option value="Connecticut">Connecticut (CT)</option>
-              <option value="Delaware">Delaware (DE)</option>
-              <option value="Florida">Florida (FL)</option>
-              <option value="Georgia">Georgia (GA)</option>
-              <option value="Hawaii">Hawaii (HI)</option>
-              <option value="Idaho">Idaho (ID)</option>
-              <option value="Illinois">Illinois (IL)</option>
-              <option value="Indiana">Indiana (IN)</option>
-              <option value="Iowa">Iowa (IA)</option>
-              <option value="Kansas">Kansas (KS)</option>
-              <option value="Kentucky">Kentucky (KY)</option>
-              <option value="Louisiana">Louisiana (LA)</option>
-              <option value="Maine">Maine (ME)</option>
-              <option value="Maryland">Maryland (MD)</option>
-              <option value="Massachusetts">Massachusetts (MA)</option>
-              <option value="Michigan">Michigan (MI)</option>
-              <option value="Minnesota">Minnesota (MN)</option>
-              <option value="Mississippi">Mississippi (MS)</option>
-              <option value="Missouri">Missouri (MO)</option>
-              <option value="Montana">Montana (MT)</option>
-              <option value="Nebraska">Nebraska (NE)</option>
-              <option value="Nevada">Nevada (NV)</option>
-              <option value="New Hampshire">New Hampshire (NH)</option>
-              <option value="New Jersey">New Jersey (NJ)</option>
-              <option value="New Mexico">New Mexico (NM)</option>
-              <option value="New York">New York (NY)</option>
-              <option value="North Carolina">North Carolina (NC)</option>
-              <option value="North Dakota">North Dakota (ND)</option>
-              <option value="Ohio">Ohio (OH)</option>
-              <option value="Oklahoma">Oklahoma (OK)</option>
-              <option value="Oregon">Oregon (OR)</option>
-              <option value="Pennsylvania">Pennsylvania (PA)</option>
-              <option value="Rhode Island">Rhode Island (RI)</option>
-              <option value="South Carolina">South Carolina (SC)</option>
-              <option value="South Dakota">South Dakota (SD)</option>
-              <option value="Tennessee">Tennessee (TN)</option>
-              <option value="Texas">Texas (TX)</option>
-              <option value="Utah">Utah (UT)</option>
-              <option value="Vermont">Vermont (VT)</option>
-              <option value="Virginia">Virginia (VA)</option>
-              <option value="Washington">Washington (WA)</option>
-              <option value="West Virginia">West Virginia (WV)</option>
-              <option value="Wisconsin">Wisconsin (WI)</option>
-              <option value="Wyoming">Wyoming (WY)</option>
-            </select>
-          </div>
-          <div class="field">
-            <label>Facility</label>
-            <input id="vobFacility" placeholder="e.g., Brookfield" />
-          </div>
-          <div class="field">
-            <label>Employer</label>
-            <input id="vobEmployer" placeholder="employer name" />
-          </div>
-          <div class="field">
-            <label>First Name</label>
-            <input id="vobFirstName" placeholder="e.g., John" />
-          </div>
-          <div class="field">
-            <label>Last Name</label>
-            <input id="vobLastName" placeholder="e.g., Doe" />
-          </div>
-        </div>
-
-        <div class="row">
-          <button id="vobSearchBtn">Search</button>
-          <button class="secondary" id="vobClearBtn">Clear</button>
-          <div class="spacer"></div>
-          <label class="small">
-            Max results
-            <select id="vobLimit">
-              <option>25</option>
-              <option selected>50</option>
-              <option>100</option>
-              <option>200</option>
-            </select>
-          </label>
-        </div>
-
-        <div class="hint">
-          Tip: Start with Member ID. Add DOB to narrow down if multiple matches show up.
-        </div>
-      </section>
-
-      <section class="card">
-        <div class="row">
-          <h2 style="margin:0;">Results</h2>
-          <div class="spacer"></div>
-          <div class="small" id="vobCountText">0 matches</div>
-        </div>
-
-        <div id="vobEmptyState" class="empty">
-          Run a search to see matching VOB records.
-        </div>
-
-        <div class="tableWrap">
-          <table id="vobResultsTable" class="table" style="display:none;">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Created</th>
-                <th>Name</th>
-                <th>DOB</th>
-                <th>Payer</th>
-                <th>Network</th>
-                <th>Funding</th>
-                <th>Ded (Ind)</th>
-                <th>OOP (Ind)</th>
-                <th>Facility</th>
-              </tr>
-            </thead>
-            <tbody id="vobResultsBody"></tbody>
-          </table>
-        </div>
-      </section>
+      
+      <!-- Floating decoration -->
+      <div class="float-shape shape-1"></div>
+      <div class="float-shape shape-2"></div>
+      <div class="float-shape shape-3"></div>
     </div>
 
-    <!-- REIMBURSEMENT TAB -->
-    <div id="reimbTab" class="tab-content">
-      <section class="card">
-        <h2>Reimbursement Search</h2>
-        <div class="grid" style="grid-template-columns: repeat(3, 1fr);">
-          <div class="field">
-            <label>Prefix / Member ID starts with</label>
-            <input id="reimbPrefix" placeholder="e.g., DNA or W155" />
-          </div>
-          <div class="field">
-            <label>Payer contains (optional)</label>
-            <input id="reimbPayer" placeholder="e.g., BCBS, UHC" />
-          </div>
-          <div class="field" id="reimbBcbsStateField" style="display:none;">
-            <label>BCBS State (optional)</label>
-            <select id="reimbBcbsState">
-              <option value="">-- Select State --</option>
-              <option value="Alabama">Alabama (AL)</option>
-              <option value="Alaska">Alaska (AK)</option>
-              <option value="Arizona">Arizona (AZ)</option>
-              <option value="Arkansas">Arkansas (AR)</option>
-              <option value="California">California (CA)</option>
-              <option value="Colorado">Colorado (CO)</option>
-              <option value="Connecticut">Connecticut (CT)</option>
-              <option value="Delaware">Delaware (DE)</option>
-              <option value="Florida">Florida (FL)</option>
-              <option value="Georgia">Georgia (GA)</option>
-              <option value="Hawaii">Hawaii (HI)</option>
-              <option value="Idaho">Idaho (ID)</option>
-              <option value="Illinois">Illinois (IL)</option>
-              <option value="Indiana">Indiana (IN)</option>
-              <option value="Iowa">Iowa (IA)</option>
-              <option value="Kansas">Kansas (KS)</option>
-              <option value="Kentucky">Kentucky (KY)</option>
-              <option value="Louisiana">Louisiana (LA)</option>
-              <option value="Maine">Maine (ME)</option>
-              <option value="Maryland">Maryland (MD)</option>
-              <option value="Massachusetts">Massachusetts (MA)</option>
-              <option value="Michigan">Michigan (MI)</option>
-              <option value="Minnesota">Minnesota (MN)</option>
-              <option value="Mississippi">Mississippi (MS)</option>
-              <option value="Missouri">Missouri (MO)</option>
-              <option value="Montana">Montana (MT)</option>
-              <option value="Nebraska">Nebraska (NE)</option>
-              <option value="Nevada">Nevada (NV)</option>
-              <option value="New Hampshire">New Hampshire (NH)</option>
-              <option value="New Jersey">New Jersey (NJ)</option>
-              <option value="New Mexico">New Mexico (NM)</option>
-              <option value="New York">New York (NY)</option>
-              <option value="North Carolina">North Carolina (NC)</option>
-              <option value="North Dakota">North Dakota (ND)</option>
-              <option value="Ohio">Ohio (OH)</option>
-              <option value="Oklahoma">Oklahoma (OK)</option>
-              <option value="Oregon">Oregon (OR)</option>
-              <option value="Pennsylvania">Pennsylvania (PA)</option>
-              <option value="Rhode Island">Rhode Island (RI)</option>
-              <option value="South Carolina">South Carolina (SC)</option>
-              <option value="South Dakota">South Dakota (SD)</option>
-              <option value="Tennessee">Tennessee (TN)</option>
-              <option value="Texas">Texas (TX)</option>
-              <option value="Utah">Utah (UT)</option>
-              <option value="Vermont">Vermont (VT)</option>
-              <option value="Virginia">Virginia (VA)</option>
-              <option value="Washington">Washington (WA)</option>
-              <option value="West Virginia">West Virginia (WV)</option>
-              <option value="Wisconsin">Wisconsin (WI)</option>
-              <option value="Wyoming">Wyoming (WY)</option>
-            </select>
-          </div>
-          <div class="field">
-            <label>First Name (optional)</label>
-            <input id="reimbFirstName" placeholder="e.g., John" />
-          </div>
-           <div class="field">
-            <label>Last Name (optional)</label>
-            <input id="reimbLastName" placeholder="e.g., Smith" />
-          </div>
-          <div class="field">
-            <label>Employer contains (optional)</label>
-            <input id="reimbEmployer" placeholder="optional" />
-          </div>
+    <!-- Right Side - Login Form -->
+    <div class="login-side">
+      <div class="login-card">
+        <div class="card-header">
+          <h2>Welcome back</h2>
+          <p>Sign in to access your portal</p>
         </div>
 
-        <div class="row">
-          <button id="reimbGoBtn">Load averages</button>
-          <button class="secondary" id="reimbClearBtn">Clear</button>
-          <div class="msg" id="reimbMsg"></div>
-        </div>
-      </section>
+        <form class="login-form" id="loginForm">
+          <div class="form-group">
+            <label for="username">Username</label>
+            <div class="input-wrapper">
+              <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                <circle cx="12" cy="7" r="4"></circle>
+              </svg>
+              <input 
+                type="text" 
+                id="username" 
+                name="username" 
+                placeholder="Enter your username"
+                autocomplete="username"
+                required 
+              />
+            </div>
+          </div>
 
-      <section class="card">
-        <div class="row">
-          <h2>Matches</h2>
-          <div class="msg" id="reimbCountText">0 matches</div>
-        </div>
+          <div class="form-group">
+            <label for="password">Password</label>
+            <div class="input-wrapper">
+              <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+              </svg>
+              <input 
+                type="password" 
+                id="password" 
+                name="password" 
+                placeholder="Enter your password"
+                autocomplete="current-password"
+                required 
+              />
+            </div>
+          </div>
 
-        <div id="reimbEmptyState" class="empty">
-          Run a search to see reimbursement summaries.
-        </div>
+          <div class="form-options">
+            <label class="remember-me">
+              <input type="checkbox" id="rememberMe" />
+              <span class="checkmark"></span>
+              <span>Remember me</span>
+            </label>
+            <a href="#" class="forgot-password">Forgot password?</a>
+          </div>
 
-        <div id="reimbPeopleList"></div>
-      </section>
-    </div>
-
-    <footer class="footer">
-      Local only • No cloud hosting • Reads from your SQLite database
-    </footer>
-  </div>
-
-  <!-- VOB Modal -->
-  <div id="vobModalOverlay" class="modalOverlay" style="display:none;">
-    <div class="modalCard" role="dialog" aria-modal="true">
-      <button id="vobModalCloseBtn" class="modalCloseBtn" type="button" aria-label="Close">×</button>
-      <div class="modalHeader">
-        <h3 id="vobModalTitle" class="modalTitle">Client Details</h3>
-        <div id="vobModalSubTitle" class="modalSubTitle"></div>
-      </div>
-      <div id="vobModalBody" class="modalBody"></div>
-    </div>
-  </div>
-
-  <!-- Reimbursement Modal -->
-  <div id="reimbModalOverlay" class="modalOverlay" style="display:none;">
-    <div class="modalCard">
-      <button id="reimbModalCloseBtn" class="modalCloseBtn" type="button" aria-label="Close">×</button>
-      <div class="modalHeader">
-        <div style="display:flex; align-items:center; gap:10px;">
-          <button id="reimbModalBackBtn" class="modalBackBtn" type="button" style="display:none;">
-           Back
+          <button type="submit" class="login-btn">
+            <span class="btn-text">Sign In</span>
+            <span class="btn-loader" style="display:none;">
+              <span class="dot"></span>
+              <span class="dot"></span>
+              <span class="dot"></span>
+            </span>
+            <svg class="btn-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+              <polyline points="12 5 19 12 12 19"></polyline>
+            </svg>
           </button>
-          <h3 id="reimbModalTitle" class="modalTitle">Client</h3>
+
+          <div class="error-message" id="errorMessage" style="display:none;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="8" x2="12" y2="12"></line>
+              <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+            <span>Invalid username or password</span>
+          </div>
+        </form>
+
+        <div class="login-footer">
+          <span class="badge">Secure</span>
+          <span class="badge">HIPAA Compliant</span>
+          <span class="badge">Internal Use</span>
         </div>
-        <div id="reimbModalSubTitle" class="modalSubTitle"></div>
-      </div>
-      <div id="reimbModalBody" class="modalBody">
-        <div id="reimbClientView"></div>
-        <div id="reimbLocView" style="display:none;"></div>
       </div>
     </div>
   </div>
 
-  <script src="app.js"></script>
+  <script>
+    document.getElementById('loginForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      const btn = document.querySelector('.login-btn');
+      const btnText = document.querySelector('.btn-text');
+      const btnLoader = document.querySelector('.btn-loader');
+      const btnArrow = document.querySelector('.btn-arrow');
+      const errorMsg = document.getElementById('errorMessage');
+      
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value;
+      
+      console.log('Attempting login with username:', username);
+      
+      // Show loading state
+      btnText.style.display = 'none';
+      btnArrow.style.display = 'none';
+      btnLoader.style.display = 'flex';
+      btn.disabled = true;
+      btn.style.cursor = 'not-allowed';
+      errorMsg.style.display = 'none';
+      
+      try {
+        console.log('Sending login request to /api/auth/login');
+        const response = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ username, password })
+        });
+        
+        console.log('Response status:', response.status);
+        const data = await response.json();
+        console.log('Response data:', data);
+        
+        if (response.ok && data.success) {
+          console.log('Login successful! Redirecting to portal...');
+          // CHANGED: Redirect to portal.html instead of dashboard.html
+          window.location.href = '/portal.html';
+        } else {
+          // Show error
+          console.log('Login failed:', data.error);
+          btnText.style.display = 'inline';
+          btnArrow.style.display = 'inline';
+          btnLoader.style.display = 'none';
+          btn.disabled = false;
+          btn.style.cursor = 'pointer';
+          
+          errorMsg.querySelector('span').textContent = 
+            data.error || 'Invalid username or password';
+          errorMsg.style.display = 'flex';
+        }
+      } catch (error) {
+        console.error('Login error:', error);
+        
+        btnText.style.display = 'inline';
+        btnArrow.style.display = 'inline';
+        btnLoader.style.display = 'none';
+        btn.disabled = false;
+        btn.style.cursor = 'pointer';
+        
+        errorMsg.querySelector('span').textContent = 
+          'Connection error. Please try again.';
+        errorMsg.style.display = 'flex';
+      }
+    });
+  </script>
 </body>
 </html>

@@ -1,0 +1,328 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Healthcare Portal</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+   <script>
+    (async function checkAuth() {
+      try {
+        const response = await fetch('/api/auth/check');
+        const data = await response.json();
+        
+        if (!data.authenticated) {
+          window.location.href = '/index.html';
+        }
+      } catch (error) {
+        console.error('Auth check failed:', error);
+        window.location.href = '/index.html';
+      }
+    })();
+  </script>
+
+  <div class="app">
+    <header class="header">
+      <div>
+        <h1>Healthcare Portal</h1>
+        <p class="sub">VOB Records & Reimbursement Data</p>
+      </div>
+      <div class="pill" id="healthPill">Checking DB…</div>
+    </header>
+
+    <!-- Tab Navigation -->
+    <nav class="tabs">
+      <button class="tab active" data-tab="vob">VOB Search</button>
+      <button class="tab" data-tab="reimb">Reimbursement</button>
+    </nav>
+
+    <!-- VOB TAB -->
+    <div id="vobTab" class="tab-content active">
+      <section class="card">
+        <h2>VOB Search</h2>
+        <div class="grid">
+          <div class="field">
+            <label>Member ID (partial ok)</label>
+            <input id="vobMemberId" placeholder="e.g., 901007801" />
+          </div>
+          <div class="field">
+            <label>DOB (must match stored format)</label>
+            <input id="vobDob" placeholder="e.g., 07/10/1967" />
+          </div>
+          <div class="field">
+            <label>Payer (canonical or raw)</label>
+            <input id="vobPayer" placeholder="e.g., UHC, Anthem, BCBS" />
+          </div>
+          <div class="field" id="vobBcbsStateField" style="display:none;">
+            <label>BCBS State (optional)</label>
+            <select id="vobBcbsState">
+              <option value="">-- Select State --</option>
+              <option value="Alabama">Alabama (AL)</option>
+              <option value="Alaska">Alaska (AK)</option>
+              <option value="Arizona">Arizona (AZ)</option>
+              <option value="Arkansas">Arkansas (AR)</option>
+              <option value="California">California (CA)</option>
+              <option value="Colorado">Colorado (CO)</option>
+              <option value="Connecticut">Connecticut (CT)</option>
+              <option value="Delaware">Delaware (DE)</option>
+              <option value="Florida">Florida (FL)</option>
+              <option value="Georgia">Georgia (GA)</option>
+              <option value="Hawaii">Hawaii (HI)</option>
+              <option value="Idaho">Idaho (ID)</option>
+              <option value="Illinois">Illinois (IL)</option>
+              <option value="Indiana">Indiana (IN)</option>
+              <option value="Iowa">Iowa (IA)</option>
+              <option value="Kansas">Kansas (KS)</option>
+              <option value="Kentucky">Kentucky (KY)</option>
+              <option value="Louisiana">Louisiana (LA)</option>
+              <option value="Maine">Maine (ME)</option>
+              <option value="Maryland">Maryland (MD)</option>
+              <option value="Massachusetts">Massachusetts (MA)</option>
+              <option value="Michigan">Michigan (MI)</option>
+              <option value="Minnesota">Minnesota (MN)</option>
+              <option value="Mississippi">Mississippi (MS)</option>
+              <option value="Missouri">Missouri (MO)</option>
+              <option value="Montana">Montana (MT)</option>
+              <option value="Nebraska">Nebraska (NE)</option>
+              <option value="Nevada">Nevada (NV)</option>
+              <option value="New Hampshire">New Hampshire (NH)</option>
+              <option value="New Jersey">New Jersey (NJ)</option>
+              <option value="New Mexico">New Mexico (NM)</option>
+              <option value="New York">New York (NY)</option>
+              <option value="North Carolina">North Carolina (NC)</option>
+              <option value="North Dakota">North Dakota (ND)</option>
+              <option value="Ohio">Ohio (OH)</option>
+              <option value="Oklahoma">Oklahoma (OK)</option>
+              <option value="Oregon">Oregon (OR)</option>
+              <option value="Pennsylvania">Pennsylvania (PA)</option>
+              <option value="Rhode Island">Rhode Island (RI)</option>
+              <option value="South Carolina">South Carolina (SC)</option>
+              <option value="South Dakota">South Dakota (SD)</option>
+              <option value="Tennessee">Tennessee (TN)</option>
+              <option value="Texas">Texas (TX)</option>
+              <option value="Utah">Utah (UT)</option>
+              <option value="Vermont">Vermont (VT)</option>
+              <option value="Virginia">Virginia (VA)</option>
+              <option value="Washington">Washington (WA)</option>
+              <option value="West Virginia">West Virginia (WV)</option>
+              <option value="Wisconsin">Wisconsin (WI)</option>
+              <option value="Wyoming">Wyoming (WY)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Facility</label>
+            <input id="vobFacility" placeholder="e.g., Brookfield" />
+          </div>
+          <div class="field">
+            <label>Employer</label>
+            <input id="vobEmployer" placeholder="employer name" />
+          </div>
+          <div class="field">
+            <label>First Name</label>
+            <input id="vobFirstName" placeholder="e.g., John" />
+          </div>
+          <div class="field">
+            <label>Last Name</label>
+            <input id="vobLastName" placeholder="e.g., Doe" />
+          </div>
+        </div>
+
+        <div class="row">
+          <button id="vobSearchBtn">Search</button>
+          <button class="secondary" id="vobClearBtn">Clear</button>
+          <div class="spacer"></div>
+          <label class="small">
+            Max results
+            <select id="vobLimit">
+              <option>25</option>
+              <option selected>50</option>
+              <option>100</option>
+              <option>200</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="hint">
+          Tip: Start with Member ID. Add DOB to narrow down if multiple matches show up.
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="row">
+          <h2 style="margin:0;">Results</h2>
+          <div class="spacer"></div>
+          <div class="small" id="vobCountText">0 matches</div>
+        </div>
+
+        <div id="vobEmptyState" class="empty">
+          Run a search to see matching VOB records.
+        </div>
+
+        <div class="tableWrap">
+          <table id="vobResultsTable" class="table" style="display:none;">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Created</th>
+                <th>Name</th>
+                <th>DOB</th>
+                <th>Payer</th>
+                <th>Network</th>
+                <th>Funding</th>
+                <th>Ded (Ind)</th>
+                <th>OOP (Ind)</th>
+                <th>Facility</th>
+              </tr>
+            </thead>
+            <tbody id="vobResultsBody"></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+    <!-- REIMBURSEMENT TAB -->
+    <div id="reimbTab" class="tab-content">
+      <section class="card">
+        <h2>Reimbursement Search</h2>
+        <div class="grid" style="grid-template-columns: repeat(3, 1fr);">
+          <div class="field">
+            <label>Prefix / Member ID starts with</label>
+            <input id="reimbPrefix" placeholder="e.g., DNA or W155" />
+          </div>
+          <div class="field">
+            <label>Payer contains (optional)</label>
+            <input id="reimbPayer" placeholder="e.g., BCBS, UHC" />
+          </div>
+          <div class="field" id="reimbBcbsStateField" style="display:none;">
+            <label>BCBS State (optional)</label>
+            <select id="reimbBcbsState">
+              <option value="">-- Select State --</option>
+              <option value="Alabama">Alabama (AL)</option>
+              <option value="Alaska">Alaska (AK)</option>
+              <option value="Arizona">Arizona (AZ)</option>
+              <option value="Arkansas">Arkansas (AR)</option>
+              <option value="California">California (CA)</option>
+              <option value="Colorado">Colorado (CO)</option>
+              <option value="Connecticut">Connecticut (CT)</option>
+              <option value="Delaware">Delaware (DE)</option>
+              <option value="Florida">Florida (FL)</option>
+              <option value="Georgia">Georgia (GA)</option>
+              <option value="Hawaii">Hawaii (HI)</option>
+              <option value="Idaho">Idaho (ID)</option>
+              <option value="Illinois">Illinois (IL)</option>
+              <option value="Indiana">Indiana (IN)</option>
+              <option value="Iowa">Iowa (IA)</option>
+              <option value="Kansas">Kansas (KS)</option>
+              <option value="Kentucky">Kentucky (KY)</option>
+              <option value="Louisiana">Louisiana (LA)</option>
+              <option value="Maine">Maine (ME)</option>
+              <option value="Maryland">Maryland (MD)</option>
+              <option value="Massachusetts">Massachusetts (MA)</option>
+              <option value="Michigan">Michigan (MI)</option>
+              <option value="Minnesota">Minnesota (MN)</option>
+              <option value="Mississippi">Mississippi (MS)</option>
+              <option value="Missouri">Missouri (MO)</option>
+              <option value="Montana">Montana (MT)</option>
+              <option value="Nebraska">Nebraska (NE)</option>
+              <option value="Nevada">Nevada (NV)</option>
+              <option value="New Hampshire">New Hampshire (NH)</option>
+              <option value="New Jersey">New Jersey (NJ)</option>
+              <option value="New Mexico">New Mexico (NM)</option>
+              <option value="New York">New York (NY)</option>
+              <option value="North Carolina">North Carolina (NC)</option>
+              <option value="North Dakota">North Dakota (ND)</option>
+              <option value="Ohio">Ohio (OH)</option>
+              <option value="Oklahoma">Oklahoma (OK)</option>
+              <option value="Oregon">Oregon (OR)</option>
+              <option value="Pennsylvania">Pennsylvania (PA)</option>
+              <option value="Rhode Island">Rhode Island (RI)</option>
+              <option value="South Carolina">South Carolina (SC)</option>
+              <option value="South Dakota">South Dakota (SD)</option>
+              <option value="Tennessee">Tennessee (TN)</option>
+              <option value="Texas">Texas (TX)</option>
+              <option value="Utah">Utah (UT)</option>
+              <option value="Vermont">Vermont (VT)</option>
+              <option value="Virginia">Virginia (VA)</option>
+              <option value="Washington">Washington (WA)</option>
+              <option value="West Virginia">West Virginia (WV)</option>
+              <option value="Wisconsin">Wisconsin (WI)</option>
+              <option value="Wyoming">Wyoming (WY)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>First Name (optional)</label>
+            <input id="reimbFirstName" placeholder="e.g., John" />
+          </div>
+           <div class="field">
+            <label>Last Name (optional)</label>
+            <input id="reimbLastName" placeholder="e.g., Smith" />
+          </div>
+          <div class="field">
+            <label>Employer contains (optional)</label>
+            <input id="reimbEmployer" placeholder="optional" />
+          </div>
+        </div>
+
+        <div class="row">
+          <button id="reimbGoBtn">Load averages</button>
+          <button class="secondary" id="reimbClearBtn">Clear</button>
+          <div class="msg" id="reimbMsg"></div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="row">
+          <h2>Matches</h2>
+          <div class="msg" id="reimbCountText">0 matches</div>
+        </div>
+
+        <div id="reimbEmptyState" class="empty">
+          Run a search to see reimbursement summaries.
+        </div>
+
+        <div id="reimbPeopleList"></div>
+      </section>
+    </div>
+
+    <footer class="footer">
+      Local only • No cloud hosting • Reads from your SQLite database
+    </footer>
+  </div>
+
+  <!-- VOB Modal -->
+  <div id="vobModalOverlay" class="modalOverlay" style="display:none;">
+    <div class="modalCard" role="dialog" aria-modal="true">
+      <button id="vobModalCloseBtn" class="modalCloseBtn" type="button" aria-label="Close">×</button>
+      <div class="modalHeader">
+        <h3 id="vobModalTitle" class="modalTitle">Client Details</h3>
+        <div id="vobModalSubTitle" class="modalSubTitle"></div>
+      </div>
+      <div id="vobModalBody" class="modalBody"></div>
+    </div>
+  </div>
+
+  <!-- Reimbursement Modal -->
+  <div id="reimbModalOverlay" class="modalOverlay" style="display:none;">
+    <div class="modalCard">
+      <button id="reimbModalCloseBtn" class="modalCloseBtn" type="button" aria-label="Close">×</button>
+      <div class="modalHeader">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <button id="reimbModalBackBtn" class="modalBackBtn" type="button" style="display:none;">
+           Back
+          </button>
+          <h3 id="reimbModalTitle" class="modalTitle">Client</h3>
+        </div>
+        <div id="reimbModalSubTitle" class="modalSubTitle"></div>
+      </div>
+      <div id="reimbModalBody" class="modalBody">
+        <div id="reimbClientView"></div>
+        <div id="reimbLocView" style="display:none;"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
